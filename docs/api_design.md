@@ -12,14 +12,14 @@
 
 ## Book リソース
 
-| エンドポイント                    | HTTPメソッド | 説明                                                   |
-| ---------------------------------- | ------------ | ------------------------------------------------------ |
-| `/api/books/search/?query={query}` | GET          | Google Books APIで書籍を検索                           |
-| `/api/books/import/`               | POST         | Google Books APIから取得した書籍をデータベースにインポート |
-| `/api/books/`                      | GET          | データベースに登録された全ての書籍を取得               |
-| `/api/books/{id}/`                 | GET          | データベースにある特定の書籍を取得                     |
-| `/api/books/{id}/`                 | PUT          | 書籍情報を更新                                         |
-| `/api/books/{id}/`                 | DELETE       | 書籍を削除                                             |
+| エンドポイント                  | HTTPメソッド | 説明                                                  |
+| -------------------------------- | ------------ | ----------------------------------------------------- |
+| `/api/books/search/?query={query}` | GET          | Google Books APIで書籍を検索                          |
+| `/api/books/select/`             | POST         | ユーザーが選択した書籍をデータベースに保存             |
+| `/api/books/`                    | GET          | データベースに登録された全ての書籍を取得              |
+| `/api/books/{id}/`               | GET          | データベースにある特定の書籍を取得                    |
+| `/api/books/{id}/`               | PUT          | 書籍情報を更新                                        |
+| `/api/books/{id}/`               | DELETE       | 書籍を削除                                            |
 
 ## Bookshelf リソース
 
