@@ -1,4 +1,3 @@
-import Footer from "./footer";
 
 export default function Footer() {
     return (
