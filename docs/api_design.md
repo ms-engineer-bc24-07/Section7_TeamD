@@ -25,12 +25,12 @@
 
 | エンドポイント                    | HTTPメソッド | 説明                                                   |
 | ---------------------------------- | ------------ | ------------------------------------------------------ |
-| `/api/bookshelves/?user_id={user_id}` | GET          | 特定のユーザーが本棚に登録した書籍を取得               |
-| `/api/bookshelves/`                | POST         | 本棚に新しい本を追加                                   |
-| `/api/bookshelves/{id}/`           | GET          | 特定の本棚エントリーを取得                             |
-| `/api/bookshelves/{id}/`           | PUT          | 本棚エントリーを更新                                   |
-| `/api/bookshelves/{id}/status`     | PATCH        | 本棚エントリーのステータスを部分更新                   |
-| `/api/bookshelves/{id}/`           | DELETE       | 本棚エントリーを削除                                   |
+| `/api/my-bookshelves/?user_id={user_id}` | GET          | 特定のユーザーが本棚に登録した書籍を取得               |
+| `/api/my-bookshelves/`                | POST         | 本棚に新しい本を追加                                   |
+| `/api/my-bookshelves/{id}/`           | GET          | 特定の本棚エントリーを取得                             |
+| `/api/my-bookshelves/{id}/`           | PUT          | 本棚エントリーを更新                                   |
+| `/api/my-bookshelves/{id}/status`     | PATCH        | 本棚エントリーのステータスを部分更新                   |
+| `/api/my-bookshelves/{id}/`           | DELETE       | 本棚エントリーを削除                                   |
 
 ## ReadingNote リソース
 
