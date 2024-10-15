@@ -6,9 +6,7 @@ import Footer from "./routes/layout_all/footer";
 export default function App() {
   return (
     <html lang="ja">
-      <head>
         <Header />
-      </head>
       <body >
         <main className="p-6">
           <Outlet />
