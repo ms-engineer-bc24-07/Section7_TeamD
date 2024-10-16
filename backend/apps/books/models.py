@@ -22,12 +22,11 @@ class UserManager(BaseUserManager):
 # カスタムユーザーモデル
 class User(AbstractBaseUser):
     email = models.EmailField(unique=True)
-    password = models.CharField(max_length=128)
     date_joined = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=True)
     is_admin = models.BooleanField(default=False)
-    is_staff = models.BooleanField(default=False)  # スタッフ権限
-    is_superuser = models.BooleanField(default=False)  # スーパーユーザ権限
+    is_staff = models.BooleanField(default=False)
+    is_superuser = models.BooleanField(default=False)
 
     objects = UserManager()
 
@@ -36,7 +35,7 @@ class User(AbstractBaseUser):
 
     def __str__(self):
         return self.email
-
+        
     # 権限のためのメソッド
     def has_perm(self, perm, obj=None):
         return self.is_admin
