@@ -9,6 +9,7 @@ from django.contrib.auth import get_user_model
 from .serializers import BookSerializer, BookshelfSerializer, ReadingNoteSerializer, MyTokenObtainPairSerializer, UserSerializer
 from django.conf import settings
 import requests
+from dateutil import parser  # 日付を解析するためにインポート
 
 # テスト用ビュー
 def test_view(request):
@@ -92,32 +93,47 @@ def select_book(request):
     authors = request.data.get('authors', ['Unknown Author'])
     isbn = request.data.get('isbn')
 
+    # タイトルとISBNが必須であることを確認
     if not title or not isbn:
         return Response({"error": "Title and ISBN are required"}, status=status.HTTP_400_BAD_REQUEST)
 
+    # ISBNを13文字に制限
     if len(isbn) > 13:
         isbn = isbn[:13]
 
+    # すでにデータベースに存在するISBNか確認
     if Book.objects.filter(isbn=isbn).exists():
-        return Response({"message": "This book already exists in the database."})
+        return Response({"error": "This book already exists in the database."}, status=status.HTTP_400_BAD_REQUEST)
 
+    # カテゴリをカンマ区切りの文字列に変換
     categories = ', '.join(request.data.get('categories', []))
 
+    # 書籍データを辞書形式で準備
     book_data = {
         "title": title,
-        "author": authors[0],
+        "author": ', '.join(authors),
         "isbn": isbn,
         "published_date": request.data.get('published_date', None),
         "description": request.data.get('description', ''),
         "cover_image": request.data.get('cover_image', ''),
-        "page_count": request.data.get('page_count', 0),
+        "page_count": request.data.get('page_count', None),
         "categories": categories
     }
 
+    # 取得した日付を解析
+    if book_data["published_date"] and '-' in book_data["published_date"]:
+        try:
+            # "YYYY-MM"形式の日付を解析
+            published_date = parser.parse(book_data["published_date"]).date()
+            book_data["published_date"] = published_date
+        except ValueError:
+            return Response({"error": "Invalid date format"}, status=status.HTTP_400_BAD_REQUEST)
+
+    # シリアライザを使ってデータのバリデーション
     serializer = BookSerializer(data=book_data)
 
     if serializer.is_valid():
-        serializer.save()
+        serializer.save()  # データベースに保存
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     else:
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

@@ -8,7 +8,8 @@ from .views import (
     update_shelf_status,
     UserViewSet,
     search_and_select_books,
-    select_book
+    select_book,
+    MyTokenObtainPairView  # 追加
 )
 
 # REST framework のルーターを使用してルーティングを設定
@@ -19,7 +20,6 @@ router.register(r'reading-notes', ReadingNoteViewSet)
 router.register(r'users', UserViewSet)  # UserViewSetのルーティングを追加
 
 urlpatterns = [
-
     # Google Books API で書籍を検索してフロントに返すエンドポイント
     path('search-books/', search_and_select_books, name='search_and_select_books'),
 
@@ -31,9 +31,11 @@ urlpatterns = [
 
     # ステータスの部分更新
     path('my-bookshelves/<int:pk>/status/', update_shelf_status, name='update_shelf_status'),      
-    
+
+    # 認証関連のエンドポイントを追加
+    path('auth/login/', MyTokenObtainPairView.as_view(), name='login'),  # ログイン
+    path('auth/register/', UserViewSet.as_view({'post': 'create'}), name='register'),  # ユーザー登録
+
     # 自動生成されたルーティング
     path('', include(router.urls)),
-
-
 ]
