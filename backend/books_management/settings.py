@@ -10,8 +10,8 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Quick-start development settings - unsuitable for production
-SECRET_KEY = os.getenv('SECRET_KEY')
-DEBUG = os.getenv('DEBUG', 'False') == 'True'
+SECRET_KEY = os.getenv('SECRET_KEY', 'fallback-secret-key')
+DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
 
 # ALLOWED_HOSTSの設定: 必要なホストを追加
 ALLOWED_HOSTS = ['localhost', '127.0.0.1', '1.0.0.127.in-addr.arpa']
@@ -24,9 +24,11 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'apps.books',
+    'apps.books',  # カスタムアプリケーション
     'rest_framework',
     'rest_framework_simplejwt',  # SimpleJWTを追加
+    'django_extensions',  # django-extensionsを追加
+    'corsheaders',  # CORS対応
 ]
 
 MIDDLEWARE = [
@@ -37,6 +39,12 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',  # CORS対応のミドルウェア
+]
+
+# CORS設定
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",  # フロントエンドのURL
 ]
 
 ROOT_URLCONF = 'books_management.urls'
@@ -65,8 +73,12 @@ AUTH_USER_MODEL = 'books.User'
 # Database: SQLiteを使用しているが、環境変数を使って他のデータベースに変更も可能
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': os.getenv('DB_ENGINE', 'django.db.backends.sqlite3'),
+        'NAME': os.getenv('DB_NAME', BASE_DIR / 'db.sqlite3'),
+        'USER': os.getenv('DB_USER', ''),
+        'PASSWORD': os.getenv('DB_PASSWORD', ''),
+        'HOST': os.getenv('DB_HOST', 'localhost'),
+        'PORT': os.getenv('DB_PORT', '5432'),  # PostgreSQL のデフォルトポート
     }
 }
 
@@ -108,4 +120,4 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Google Books APIキー
-GOOGLE_BOOKS_API_KEY = os.getenv('GOOGLE_BOOKS_API_KEY')
+GOOGLE_BOOKS_API_KEY = os.getenv('GOOGLE_BOOKS_API_KEY', '')

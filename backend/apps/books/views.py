@@ -1,19 +1,14 @@
 from django.http import HttpResponse
-from rest_framework import viewsets
+from rest_framework import viewsets, status
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework_simplejwt.views import TokenObtainPairView
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from rest_framework import status
 from .models import Book, Bookshelf, ReadingNote
-from django.contrib.auth import get_user_model  # 追加
+from django.contrib.auth import get_user_model
 from .serializers import BookSerializer, BookshelfSerializer, ReadingNoteSerializer, MyTokenObtainPairSerializer, UserSerializer
 from django.conf import settings
 import requests
-import logging
-
-# ロギング設定
-logger = logging.getLogger(__name__)
 
 # テスト用ビュー
 def test_view(request):
@@ -43,128 +38,109 @@ class MyTokenObtainPairView(TokenObtainPairView):
 
 # User用のビューセット
 class UserViewSet(viewsets.ModelViewSet):
-    queryset = get_user_model().objects.all()  # 全ユーザー取得
-    serializer_class = UserSerializer  # UserSerializerを使用
-        # create (POST) メソッドには AllowAny (認証不要) を設定
+    queryset = get_user_model().objects.all()
+    serializer_class = UserSerializer
+
     def get_permissions(self):
         if self.action == 'create':
-            self.permission_classes = [AllowAny]  # 新規ユーザー作成は認証不要
-        else:
-            self.permission_classes = [IsAuthenticated]  # それ以外は認証が必要
-        return super().get_permissions()
+            return [AllowAny()]
+        return [IsAuthenticated()]
 
-# Google Books APIから本を取得して保存する関数
-def fetch_and_save_books_from_google(query):
-    api_key = settings.GOOGLE_BOOKS_API_KEY
-    url = f"https://www.googleapis.com/books/v1/volumes?q={query}&key={api_key}"
-    
-    try:
-        response = requests.get(url)
-        response.raise_for_status()
-        logger.info(f"Google Books API response: {response.status_code} - {response.text}")
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Failed to fetch data from Google Books API for query '{query}': {e}")
-        return None
-
-    if response.status_code == 200:
-        data = response.json()
-        books_data = data.get("items", [])
-        
-        if not books_data:
-            logger.info(f"No books found for query '{query}'")
-            return "No books found"
-
-        for book_data in books_data:
-            volume_info = book_data.get("volumeInfo", {})
-            title = volume_info.get("title", "No title")
-            authors = volume_info.get("authors", ["Unknown Author"])
-            isbn_list = volume_info.get("industryIdentifiers", [])
-            isbn = None
-            for identifier in isbn_list:
-                if identifier['type'] == 'ISBN_13':
-                    isbn = identifier['identifier']
-                    break
-            if not isbn:
-                isbn = "No ISBN"
-            published_date = volume_info.get("publishedDate", "0000-00-00")
-
-            # 日付がYYYY-MM形式の場合にYYYY-MM-DD形式に変換
-            if len(published_date) == 7:  # YYYY-MM形式の場合
-                published_date = f"{published_date}-01"
-
-            description = volume_info.get("description", "")
-            page_count = volume_info.get("pageCount", 0)
-            categories = volume_info.get("categories", ["Unknown Category"])[0]
-            cover_image = volume_info.get("imageLinks", {}).get("thumbnail", "")
-
-            # Bookモデルにデータを保存
-            try:
-                Book.objects.update_or_create(
-                    isbn=isbn,
-                    defaults={
-                        "title": title,
-                        "author": authors[0],
-                        "published_date": published_date,
-                        "description": description,
-                        "page_count": page_count,
-                        "categories": categories,
-                        "cover_image": cover_image,
-                    }
-                )
-                logger.info(f"Book saved: {title} by {authors[0]}")
-            except Exception as e:
-                logger.error(f"Failed to save book '{title}' with ISBN '{isbn}': {e}")
-        
-        return "Books successfully fetched and saved"
-    else:
-        logger.error(f"Unexpected status code {response.status_code} from Google Books API for query '{query}'")
-        return None
-
-# Google Books APIから本を検索して保存するビュー
+# Google Books APIから本を検索して結果を返す
 @api_view(['GET'])
-def search_and_save_books(request):
-    print("search_and_save_books was called")  # デバッグ用のログを追加
+@permission_classes([AllowAny])
+def search_and_select_books(request):
     query = request.query_params.get('query', '')
-
     if not query:
         return Response({"error": "Query parameter is required"}, status=status.HTTP_400_BAD_REQUEST)
 
-    result = fetch_and_save_books_from_google(query)
+    api_key = settings.GOOGLE_BOOKS_API_KEY
+    url = f"https://www.googleapis.com/books/v1/volumes?q={query}&key={api_key}"
 
-    if result is None:
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+    except requests.exceptions.RequestException:
         return Response({"error": "Failed to fetch data from Google Books API"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    elif result == "No books found":
-        return Response({"message": "No books found for the given query"}, status=status.HTTP_200_OK)
 
-    books = Book.objects.all()
-    serializer = BookSerializer(books, many=True)
+    data = response.json()
+    books_data = data.get("items", [])
 
-    return Response(serializer.data, status=status.HTTP_200_OK)
+    if not books_data:
+        return Response({"message": "No books found for the given query"})
 
-# 本棚に書籍を追加するビュー
+    books = [
+        {
+            "title": book.get("volumeInfo", {}).get("title", "No title"),
+            "authors": book.get("volumeInfo", {}).get("authors", ["Unknown Author"]),
+            "cover_image": book.get("volumeInfo", {}).get("imageLinks", {}).get("thumbnail", ""),
+            "isbn": book.get("volumeInfo", {}).get("industryIdentifiers", [{}])[0].get("identifier", "No ISBN"),
+            "published_date": book.get("volumeInfo", {}).get("publishedDate", "No date"),
+            "description": book.get("volumeInfo", {}).get("description", "No description"),
+            "page_count": book.get("volumeInfo", {}).get("pageCount", "No page count"),
+            "categories": book.get("volumeInfo", {}).get("categories", ["No categories"]),
+        }
+        for book in books_data
+    ]
+
+    return Response(books)
+
+# ユーザーが選択した書籍をDBに保存する
+@api_view(['POST'])
+def select_book(request):
+    title = request.data.get('title')
+    authors = request.data.get('authors', ['Unknown Author'])
+    isbn = request.data.get('isbn')
+
+    if not title or not isbn:
+        return Response({"error": "Title and ISBN are required"}, status=status.HTTP_400_BAD_REQUEST)
+
+    if len(isbn) > 13:
+        isbn = isbn[:13]
+
+    if Book.objects.filter(isbn=isbn).exists():
+        return Response({"message": "This book already exists in the database."})
+
+    categories = ', '.join(request.data.get('categories', []))
+
+    book_data = {
+        "title": title,
+        "author": authors[0],
+        "isbn": isbn,
+        "published_date": request.data.get('published_date', None),
+        "description": request.data.get('description', ''),
+        "cover_image": request.data.get('cover_image', ''),
+        "page_count": request.data.get('page_count', 0),
+        "categories": categories
+    }
+
+    serializer = BookSerializer(data=book_data)
+
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    else:
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+# 本棚に新しい本を追加する
 @api_view(['POST'])
 def add_book_to_shelf(request):
     user = request.user
-    isbn = request.data.get('isbn')
+    book_id = request.data.get('book_id')
 
-    if not isbn:
-        return Response({"error": "ISBN is required"}, status=400)
+    if not book_id:
+        return Response({"error": "Book ID is required"}, status=status.HTTP_400_BAD_REQUEST)
 
-    # ISBNでBookを検索。存在しない場合は404エラーを返す
     try:
-        book = Book.objects.get(isbn=isbn)
+        book = Book.objects.get(id=book_id)
     except Book.DoesNotExist:
-        return Response({"error": "Book not found"}, status=404)
-    except Exception as e:
-        return Response({"error": str(e)}, status=500)
+        return Response({"error": "Book not found"}, status=status.HTTP_404_NOT_FOUND)
 
-    # ステータスのバリデーション
     status_value = request.data.get('status', 'to_read')
     VALID_STATUS = ['to_read', 'reading', 'finished']
     if status_value not in VALID_STATUS:
-        return Response({"error": "Invalid status value"}, status=400)
+        return Response({"error": "Invalid status value"}, status=status.HTTP_400_BAD_REQUEST)
 
-    # Bookshelfに本を追加。既に存在していれば、新たに作成しない
     bookshelf, created = Bookshelf.objects.get_or_create(
         user=user,
         book=book,
@@ -172,6 +148,25 @@ def add_book_to_shelf(request):
     )
 
     if created:
-        return Response({"message": "Book added to your shelf"}, status=201)
+        return Response({"message": "Book added to your shelf"}, status=status.HTTP_201_CREATED)
     else:
-        return Response({"message": "This book is already in your shelf"}, status=200)
+        return Response({"message": "This book is already in your shelf"}, status=status.HTTP_200_OK)
+
+# 本棚のステータスを更新する
+@api_view(['PATCH'])
+def update_shelf_status(request, pk):
+    try:
+        bookshelf = Bookshelf.objects.get(pk=pk, user=request.user)
+    except Bookshelf.DoesNotExist:
+        return Response({"error": "Bookshelf entry not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    status_value = request.data.get('status')
+    VALID_STATUS = ['to_read', 'reading', 'finished']
+    if status_value not in VALID_STATUS:
+        return Response({"error": "Invalid status value"}, status=status.HTTP_400_BAD_REQUEST)
+
+    bookshelf.status = status_value
+    bookshelf.save()
+
+    serializer = BookshelfSerializer(bookshelf)
+    return Response(serializer.data)
