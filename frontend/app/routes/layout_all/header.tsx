@@ -5,6 +5,7 @@ export default function Header() {
             <nav style={navStyle}>
                 <h1 style={titleStyle}>読書アプリケーション</h1>
                 <ul style={listStyle}>
+                    <a href="/login" style={linkStyle}>ログイン</a>
                     <a href="/" style={linkStyle}>ホーム</a>
                     <a href="/search" style={linkStyle}>検索</a>
                 </ul>
