@@ -45,7 +45,7 @@ MIDDLEWARE = [
 
 # CORS設定
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",  # フロントエンドのURL
+    "http://localhost:5173",  # フロントエンドのURL
 ]
 
 ROOT_URLCONF = 'books_management.urls'

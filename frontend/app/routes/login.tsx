@@ -1,12 +1,26 @@
-import { Form, redirect, json } from "@remix-run/react"; // 追加
-import { useActionData } from "@remix-run/react"; // 追加
-import { getUserByEmail, verifyPassword } from "~/utils/auth"; // ユーザー認証のための関数を作成する
-import { loginUser } from "~/utils/auth";
-import { ActionFunction } from "@remix-run/node";
+import { Form, redirect, json } from "@remix-run/react"; // 必要なコンポーネントをインポート
+import { ActionFunction } from "@remix-run/node"; // ActionFunctionをインポート
+import { loginUser } from "../utils/auth"; // 認証用の関数をインポート
+
+// ActionFunctionを使用
+export const action: ActionFunction = async ({ request }) => {
+    const formData = new URLSearchParams(await request.text());
+    const email = formData.get("email");
+    const password = formData.get("password");
+
+    if (!email || !password) {
+        return json({ error: "メールアドレスとパスワードは必須です。" }, { status: 400 });
+    }
+
+    const result = await loginUser(email, password);
+    if (result.error) {
+        return json({ error: result.error }, { status: 401 });
+    }
+
+    return redirect("/"); // 認証成功時にリダイレクト
+};
 
 export default function Login() {
-    const actionData = useActionData <{ error?: string }>(); // 追加
-
     return (
         <div className="login-container">
             <h1>ログイン</h1>
@@ -19,23 +33,8 @@ export default function Login() {
                     <label htmlFor="password">パスワード</label>
                     <input type="password" name="password" id="password" required />
                 </div>
-
-                {actionData?.error && <p>{actionData.error}</p>} {/* エラーメッセージ表示 */}
                 <button type="submit">ログイン</button>
             </Form>
         </div>
     );
-}
-
-
-export const action: ActionFunction = async ({ request }) => {
-    // 型が指定されたのでエラーが解消されます
-    const formData = new URLSearchParams(await request.text());
-    const email = formData.get("email");
-    const password = formData.get("password");
-
-    if (!email || !password) {
-        return json({ error: "メールアドレスとパスワードは必須です。" }, { status: 400 });
-    }
-    const result = await loginUser(email, password);
 }
