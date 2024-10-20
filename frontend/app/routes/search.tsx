@@ -1,19 +1,34 @@
 import { useState } from "react"; // useStateをインポート
 import { Form } from "@remix-run/react";
 
+// 追加：Bookの型を定義
+interface Book {
+    title: string;
+    authors: string[];
+    cover_image: string;
+    isbn: string;
+    published_date: string;
+    description: string;
+    page_count: number;
+    categories: string[];
+}
+
 export default function SearchPage() {
-    const [books, setBooks] = useState([]); // 書籍を格納するための状態
+    const [books, setBooks] = useState<Book[]>([]); // 変更：booksの型を指定
     const [query, setQuery] = useState(""); // 現在のクエリを格納するための状態
     const [hasSearched, setHasSearched] = useState(false); // 検索が行われたかどうかの状態
-
-    const handleSearch = async (event) => {
+    // 変更：eventの型を指定
+    const handleSearch = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault(); // デフォルトのフォーム送信を防ぐ
 
         // Google Books APIからデータを取得
         try {
-            const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${query}`);
+            //変更：書籍検索エンドポイント（/search-books/）にリクエストを送る
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/search-books/?query=${query}`);
             const data = await response.json();
-            setBooks(data.items || []); // 取得した書籍を状態に設定
+            console.log(data); //追加：返されたデータをコンソールに出力
+            // 変更：取得した書籍を状態に設定(data.items→dataに変更)
+            setBooks(data || []); 
             setHasSearched(true); // 検索を行ったことを記録
         } catch (error) {
             console.error("Error fetching data:", error);
@@ -41,14 +56,15 @@ export default function SearchPage() {
                 {hasSearched && books.length > 0 ? ( // 検索が行われたか確認
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         {books.map((book) => (
-                            <div key={book.id} className="border p-4">
-                                <h2 className="text-lg">{book.volumeInfo.title}</h2>
+                            <div key={book.isbn} className="border p-4"> {/* 変更：id→isbn */}
+                                <h2 className="text-lg">{book.title}</h2> {/* 変更：book.volumeInfo.title→book.title */}
                                 <img
-                                    src={book.volumeInfo.imageLinks?.thumbnail}
-                                    alt={book.volumeInfo.title}
+                                //変更：book.volumeInfo.imageLinks?.thumbnail→book.cover_image
+                                    src={book.cover_image} 
+                                    alt={book.title}
                                     className="mt-2"
                                 />
-                                <p>{book.volumeInfo.authors?.join(", ")}</p>
+                                <p>{book.authors?.join(", ")}</p> {/* 変更：book.volumeInfo.authors?.join(", ") →book.authors.join(", ")  */}
                             </div>
                         ))}
                     </div>
