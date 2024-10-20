@@ -12,7 +12,7 @@ class LoginTestCase(TestCase):
             password= 'password123'
         )
 
-def test_login_success(self):
+    def test_login_success(self):
         #ログインが成功したパターン
         response = self.client.post(reverse('token'), {
             'email': 'test@example.com',
@@ -21,7 +21,7 @@ def test_login_success(self):
         self.assertEqual(response.status_code, 200)
         self.assertIn('token', response.data)
 
-def test_login_failure(self):
+    def test_login_failure(self):
         #ログインが失敗したパターン
         response = self.client.post(reverse('token'), {
             'email': 'test@example.com',
