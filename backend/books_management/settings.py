@@ -24,7 +24,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'apps.books',  # カスタムアプリケーション
+    'apps.books.apps.BooksConfig',  # カスタムAppConfigに変更
     'rest_framework',
     'rest_framework_simplejwt',  # SimpleJWTを追加
     'django_extensions',  # django-extensionsを追加
@@ -40,11 +40,12 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'corsheaders.middleware.CorsMiddleware',  # CORS対応のミドルウェア
+    'books_management.middleware.ForeignKeyMiddleware',  # カスタムミドルウェアのパスを指定
 ]
 
 # CORS設定
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",  # フロントエンドのURL
+    "http://localhost:5173",  # フロントエンドのURL
 ]
 
 ROOT_URLCONF = 'books_management.urls'

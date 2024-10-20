@@ -1,4 +1,24 @@
-import { Form } from "@remix-run/react";
+import { Form, redirect, json } from "@remix-run/react"; // 必要なコンポーネントをインポート
+import { ActionFunction } from "@remix-run/node"; // ActionFunctionをインポート
+import { loginUser } from "../utils/auth"; // 認証用の関数をインポート
+
+// ActionFunctionを使用
+export const action: ActionFunction = async ({ request }) => {
+    const formData = new URLSearchParams(await request.text());
+    const email = formData.get("email");
+    const password = formData.get("password");
+
+    if (!email || !password) {
+        return json({ error: "メールアドレスとパスワードは必須です。" }, { status: 400 });
+    }
+
+    const result = await loginUser(email, password);
+    if (result.error) {
+        return json({ error: result.error }, { status: 401 });
+    }
+
+    return redirect("/"); // 認証成功時にリダイレクト
+};
 
 export default function Login() {
     return (
